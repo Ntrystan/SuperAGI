@@ -94,11 +94,17 @@ def get_marketplace_toolkit_readme(toolkit_name: str):
     """
 
     organisation_id = int(get_config("MARKETPLACE_ORGANISATION_ID"))
-    toolkit = db.session.query(Toolkit).filter(Toolkit.name == toolkit_name,
-                                               Toolkit.organisation_id == organisation_id).first()
-    if not toolkit:
+    if (
+        toolkit := db.session.query(Toolkit)
+        .filter(
+            Toolkit.name == toolkit_name,
+            Toolkit.organisation_id == organisation_id,
+        )
+        .first()
+    ):
+        return get_readme_content_from_code_link(toolkit.tool_code_link)
+    else:
         raise HTTPException(status_code=404, detail='ToolKit not found')
-    return get_readme_content_from_code_link(toolkit.tool_code_link)
 
 
 # For internal use
@@ -119,12 +125,17 @@ def get_marketplace_toolkit_tools(toolkit_name: str):
     """
 
     organisation_id = int(get_config("MARKETPLACE_ORGANISATION_ID"))
-    toolkit = db.session.query(Toolkit).filter(Toolkit.name == toolkit_name,
-                                               Toolkit.organisation_id == organisation_id).first()
-    if not toolkit:
+    if (
+        toolkit := db.session.query(Toolkit)
+        .filter(
+            Toolkit.name == toolkit_name,
+            Toolkit.organisation_id == organisation_id,
+        )
+        .first()
+    ):
+        return db.session.query(Tool).filter(Tool.toolkit_id == toolkit.id).first()
+    else:
         raise HTTPException(status_code=404, detail="ToolKit not found")
-    tools = db.session.query(Tool).filter(Tool.toolkit_id == toolkit.id).first()
-    return tools
 
 
 @router.get("/get/install/{toolkit_name}")
@@ -233,12 +244,16 @@ def get_installed_toolkit_readme(toolkit_name: str, organisation: Organisation =
 
     """
 
-    toolkit = db.session.query(Toolkit).filter(Toolkit.name == toolkit_name,
-                                               Organisation.id == organisation.id).first()
-    if not toolkit:
+    if (
+        toolkit := db.session.query(Toolkit)
+        .filter(
+            Toolkit.name == toolkit_name, Organisation.id == organisation.id
+        )
+        .first()
+    ):
+        return get_readme_content_from_code_link(toolkit.tool_code_link)
+    else:
         raise HTTPException(status_code=404, detail='ToolKit not found')
-    readme_content = get_readme_content_from_code_link(toolkit.tool_code_link)
-    return readme_content
 
 
 # Following APIs will be used to get marketplace related information
@@ -258,8 +273,7 @@ def handle_marketplace_operations(
         dict: The response containing the marketplace details.
 
     """
-    response = Toolkit.fetch_marketplace_detail(search_str, toolkit_name)
-    return response
+    return Toolkit.fetch_marketplace_detail(search_str, toolkit_name)
 
 
 @router.get("/get/list")
@@ -279,9 +293,9 @@ def handle_marketplace_operations_list(
     """
 
     marketplace_toolkits = Toolkit.fetch_marketplace_list(page=page)
-    marketplace_toolkits_with_install = Toolkit.get_toolkit_installed_details(db.session, marketplace_toolkits,
-                                                                              organisation)
-    return marketplace_toolkits_with_install
+    return Toolkit.get_toolkit_installed_details(
+        db.session, marketplace_toolkits, organisation
+    )
 
 
 @router.get("/get/local/list")
