@@ -103,15 +103,15 @@ class InstagramTool(BaseTool):
         caption_prompt ="""Generate an instagram post caption for the following text `{photo_description}`
             Attempt to make it as relevant as possible to the description and should be different and unique everytime. Add relevant emojis and hashtags."""
 
-        caption_prompt = caption_prompt.replace("{photo_description}", str(photo_description))
+        caption_prompt = caption_prompt.replace(
+            "{photo_description}", photo_description
+        )
 
         messages = [{"role": "system", "content": caption_prompt}]
         result = self.llm.chat_completion(messages, max_tokens=self.max_token_limit)
         caption=result["content"]
-        
-        encoded_caption=urllib. parse. quote(caption)     
 
-        return encoded_caption
+        return urllib. parse. quote(caption)
 
     def get_image_from_s3(self,s3,file_path):
         """
@@ -126,9 +126,7 @@ class InstagramTool(BaseTool):
         """
         
         response = s3.get_object(Bucket=get_config("BUCKET_NAME"), Key=file_path)
-        content = response["Body"].read()
-
-        return content
+        return response["Body"].read()
 
     def get_file_path_from_image_generation_tool(self):
         """
@@ -160,13 +158,11 @@ class InstagramTool(BaseTool):
             The s3 client
         """
         
-        s3 = boto3.client(
+        return boto3.client(
             's3',
             aws_access_key_id=get_config("AWS_ACCESS_KEY_ID"),
             aws_secret_access_key=get_config("AWS_SECRET_ACCESS_KEY"),
         )
-
-        return s3
         
     def get_img_public_url(self,s3,file_path,content):
         """
@@ -183,9 +179,8 @@ class InstagramTool(BaseTool):
         bucket_name = get_config("INSTAGRAM_TOOL_BUCKET_NAME")
         object_key=f"instagram_upload_images/{file_path.split('/')[-1]}{random.randint(0, 1000)}"
         s3.put_object(Bucket=bucket_name, Key=object_key, Body=content)
-        
-        image_url = f"https://{bucket_name}.s3.amazonaws.com/{object_key}"
-        return image_url
+
+        return f"https://{bucket_name}.s3.amazonaws.com/{object_key}"
 
     def get_img_url_and_encoded_caption(self,photo_description,file_path):
         #creating an s3 client
@@ -203,24 +198,12 @@ class InstagramTool(BaseTool):
 
     def get_req_insta_id(self,root_api_url,facebook_page_id,meta_user_access_token):
         url_to_get_acc_id=f"{root_api_url}{facebook_page_id}?fields=instagram_business_account&access_token={meta_user_access_token}"
-        response=requests.get(
-            url_to_get_acc_id
-        )
-
-        return response
+        return requests.get(url_to_get_acc_id)
     
     def post_media_container_id(self,root_api_url,insta_business_account_id,image_url,encoded_caption,meta_user_access_token):
         url_to_create_media_container=f"{root_api_url}{insta_business_account_id}/media?image_url={image_url}&caption={encoded_caption}&access_token={meta_user_access_token}"
-        response = requests.post(       
-            url_to_create_media_container
-        )
-
-        return response
+        return requests.post(url_to_create_media_container)
 
     def post_media(self,root_api_url,insta_business_account_id,container_ID,meta_user_access_token):
         url_to_post_media_container=f"{root_api_url}{insta_business_account_id}/media_publish?creation_id={container_ID}&access_token={meta_user_access_token}"
-        response = requests.post(
-            url_to_post_media_container
-        )
-
-        return response
+        return requests.post(url_to_post_media_container)

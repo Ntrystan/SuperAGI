@@ -19,12 +19,16 @@ def get_marketplace_valid_indices(knowledge_name: str, organisation = Depends(ge
     for vector_db in vector_dbs:
         indices =  VectordbIndices.get_vector_indices_from_vectordb(db.session, vector_db.id)
         for index in indices:
-            data = {"id": index.id, "name": index.name}
-            data["is_valid_dimension"] = True if index.dimensions == int(knowledge_with_config["dimensions"]) else False
-            data["is_valid_state"] = True if index.state != "Custom" else False
+            data = {
+                "id": index.id,
+                "name": index.name,
+                "is_valid_dimension": index.dimensions
+                == int(knowledge_with_config["dimensions"]),
+                "is_valid_state": index.state != "Custom",
+            }
             if vector_db.db_type == "Pinecone":
                 pinecone.append(data)
-            if vector_db.db_type == "Qdrant":
+            elif vector_db.db_type == "Qdrant":
                 qdrant.append(data)
     return {"pinecone": pinecone, "qdrant": qdrant}
 
@@ -36,10 +40,13 @@ def get_user_valid_indices(organisation = Depends(get_user_organisation)):
     for vector_db in vector_dbs:
         indices =  VectordbIndices.get_vector_indices_from_vectordb(db.session, vector_db.id)
         for index in indices:
-            data = {"id": index.id, "name": index.name}
-            data["is_valid_state"] = True if index.state == "Custom" else False
+            data = {
+                "id": index.id,
+                "name": index.name,
+                "is_valid_state": index.state == "Custom",
+            }
             if vector_db.db_type == "Pinecone":
                 pinecone.append(data)
-            if vector_db.db_type == "Qdrant":
+            elif vector_db.db_type == "Qdrant":
                 qdrant.append(data)
     return {"pinecone": pinecone, "qdrant": qdrant}
